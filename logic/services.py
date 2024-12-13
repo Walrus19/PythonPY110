@@ -1,7 +1,7 @@
 def filtering_category(database: dict[str, dict],
                        category_key: [None, str] = None,
                        ordering_key: [None, str] = None,
-                       reverse: bool = False):
+                       reverse: bool = False) -> list[dict]:
     """
     Функция фильтрации данных по параметрам
 
