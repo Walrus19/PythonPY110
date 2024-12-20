@@ -4,7 +4,8 @@ from logic.services import filtering_category
 from django.shortcuts import render
 from django.http import JsonResponse
 from store.models import DATABASE
-from django.http import HttpResponse
+from django.shortcuts import render
+from django.http import HttpResponse, HttpResponseNotFound
 from logic.services import view_in_cart, add_to_cart, remove_from_cart
 
 # def products_view(request):
@@ -26,7 +27,7 @@ def products_view(request):
         # Обработка фильтрации из параметров запроса
         category_key = request.GET.get("category")  # Считали 'category'
         if ordering_key := request.GET.get("ordering"): # Если в параметрах есть 'ordering'
-            if request.GET.get("reverse")  and request.GET.get("reverse").lower() == 'true': # Если в параметрах есть 'ordering' и 'reverse'=True
+            if request.GET.get("reverse") and request.GET.get("reverse").lower() == 'true': # Если в параметрах есть 'ordering' и 'reverse'=True
                 # TODO Использовать filtering_category и провести фильтрацию с параметрами category, ordering, reverse=True
                 data = filtering_category(DATABASE, category_key, ordering_key, reverse=True)
             else:  # Если не обнаружили в адресно строке ...&reverse=true , значит reverse=False
@@ -62,23 +63,37 @@ def products_page_view(request, page):
 
 def shop_view(request):
     if request.method == "GET":
-        with open('store/shop.html', encoding="utf-8") as f:
-            data = f.read()  # Читаем HTML файл
-        return HttpResponse(data)  # Отправляем HTML файл как ответ
-
+        # with open('store/shop.html', encoding="utf-8") as f:
+        #     data = f.read()  # Читаем HTML файл
+        # return HttpResponse(data)  # Отправляем HTML файл как ответ
+        return render(request, 'store/shop.html', context={"products": DATABASE.values()})
 
 def cart_view(request):
     if request.method == "GET":
-        # TODO Вызвать ответственную за это действие функцию
+        # # TODO Вызвать ответственную за это действие функцию
+        # data = view_in_cart()
+        # return JsonResponse(data, json_dumps_params={'ensure_ascii': False,
+        #                                              'indent': 4})
         data = view_in_cart()
-        return JsonResponse(data, json_dumps_params={'ensure_ascii': False,
-                                                     'indent': 4})
+        if request.GET.get('format') == 'JSON':
+            return JsonResponse(data, json_dumps_params={'ensure_ascii': False,
+                                                         'indent': 4})
 
+        products = []  # Список продуктов
+        for product_id, quantity in data['products'].items():
+            # 1. Получите информацию о продукте из DATABASE по его product_id. product будет словарём
+            print(product_id)
+            # product = product_id['description']
+            # 2. в словарь product под ключом "quantity" запишите текущее значение товара в корзине
+            product[
+                "price_total"] = f"{quantity * product['price_after']:.2f}"  # добавление общей цены позиции с ограничением в 2 знака
+            # 3. добавьте product в список products
 
+        return render(request, "store/cart.html", context={"products": products})
 def cart_add_view(request, id_product):
     if request.method == "GET":
         # TODO Вызвать ответственную за это действие функцию и передать необходимые параметры
-        result = add_to_cart()
+        result = add_to_cart(id_product)
         if result:
             return JsonResponse({"answer": "Продукт успешно добавлен в корзину"},
                                 json_dumps_params={'ensure_ascii': False})
@@ -91,7 +106,7 @@ def cart_add_view(request, id_product):
 def cart_del_view(request, id_product):
     if request.method == "GET":
         # TODO Вызвать ответственную за это действие функцию и передать необходимые параметры
-        result = remove_from_cart()
+        result = remove_from_cart(id_product)
         if result:
             return JsonResponse({"answer": "Продукт успешно удалён из корзины"},
                                 json_dumps_params={'ensure_ascii': False})
