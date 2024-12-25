@@ -28,7 +28,7 @@ def filtering_category(database: dict[str, dict],
         # [product for product in database.values() if ...] подумать, что за фильтрующее условие можно применить.
         # Сравните значение категории продукта со значением category_key
     else:
-        result = list(database)
+        result = list(database.values())
         # TODO Трансформируйте словарь словарей database в список словарей
         # В итоге должен быть [dict, dict, dict, ...], где dict - словарь продукта из database
     if ordering_key is not None:
