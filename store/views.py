@@ -145,3 +145,26 @@ def cart_del_view(request, id_product):
         return JsonResponse({"answer": "Неудачное удаление из корзины"},
                             status=404,
                             json_dumps_params={'ensure_ascii': False})
+
+def coupon_check_view(request, coupon):
+    # DATA_COUPON - база данных купонов: ключ - код купона (name_coupon); значение - словарь со значением скидки в процентах и
+    # значением действителен ли купон или нет
+    DATA_COUPON = {
+        "coupon": {
+            "value": 10,
+            "is_valid": True},
+        "coupon_old": {
+            "value": 20,
+            "is_valid": False},
+    }
+    if request.method == "GET":
+        # TODO Проверьте, что купон есть в DATA_COUPON, если он есть, то верните JsonResponse в котором по ключу "discount"
+        # получают значение скидки в процентах, а по ключу "is_valid" понимают действителен ли купон или нет (True, False)
+
+        # TODO Если купона нет в базе, то верните HttpResponseNotFound("Неверный купон")
+            result = DATA_COUPON.get(coupon)
+            if result:
+                return JsonResponse( {"discount": result.get("value"), "is_valid": result.get("is_valid")}, json_dumps_params={'ensure_ascii': False,
+                                                           'indent': 4})
+            else:
+                return HttpResponseNotFound("Неверный купон")
