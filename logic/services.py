@@ -1,8 +1,10 @@
 import json
 import os
 from itertools import product
-
+from django.contrib.auth import get_user
 from store.models import DATABASE
+from django.contrib.auth import login, authenticate, get_user
+
 
 def filtering_category(database: dict[str, dict],
                        category_key: [None, str] = None,
@@ -41,7 +43,7 @@ def filtering_category(database: dict[str, dict],
 
 
 
-def view_in_cart() -> dict:  # Уже реализовано, не нужно здесь ничего писать
+def view_in_cart(request) -> dict:  # Уже реализовано, не нужно здесь ничего писать
     """
     Просматривает содержимое cart.json
 
@@ -51,14 +53,15 @@ def view_in_cart() -> dict:  # Уже реализовано, не нужно з
         with open('cart.json', encoding='utf-8') as f:
             return json.load(f)
 
-    cart = {'products': {}}  # Создаём пустую корзину
+    user = get_user(request).username  # Получаем авторизированного пользователя
+    cart = {user: {'products': {}}}  # создаем пустую корзину.
     with open('cart.json', mode='x', encoding='utf-8') as f:  # Создаём файл и записываем туда пустую корзину
         json.dump(cart, f)
 
     return cart
 
 
-def add_to_cart(id_product: str) -> bool:
+def add_to_cart(request, id_product: str) -> bool:
     """
     Добавляет продукт в корзину. Если в корзине нет данного продукта, то добавляет его с количеством равное 1.
     Если в корзине есть такой продукт, то добавляет количеству данного продукта + 1.
@@ -68,7 +71,9 @@ def add_to_cart(id_product: str) -> bool:
     не существует).
     """
     # TODO Помните, что у вас есть уже реализация просмотра корзины,
-    cart = view_in_cart()
+    cart_users = view_in_cart(request)
+    cart = cart_users[get_user(request).username]
+
     if cart["products"].get(id_product) == None:
         if DATABASE.get(id_product):
             cart["products"][id_product] = 1
@@ -78,7 +83,7 @@ def add_to_cart(id_product: str) -> bool:
         count = cart["products"].get(id_product)
         cart["products"][id_product] = count + 1
     with open('cart.json', mode='w', encoding='utf-8') as f:  # Создаём файл и записываем туда текущую корзину
-        json.dump(cart, f)
+        json.dump(cart_users, f)
 
     # поэтому, чтобы загрузить данные из корзины, не нужно заново писать код.
 
@@ -97,7 +102,7 @@ def add_to_cart(id_product: str) -> bool:
     return True
 
 
-def remove_from_cart(id_product: str) -> bool:
+def remove_from_cart(request, id_product: str) -> bool:
     """
     Добавляет позицию продукта из корзины. Если в корзине есть такой продукт, то удаляется ключ в словаре
     с этим продуктом.
@@ -108,7 +113,8 @@ def remove_from_cart(id_product: str) -> bool:
     """
     # TODO Помните, что у вас есть уже реализация просмотра корзины,
     # поэтому, чтобы загрузить данные из корзины, не нужно заново писать код.
-    cart = view_in_cart()
+    cart_users = view_in_cart(request)
+    cart = cart_users[get_user(request).username]
     # С переменной cart функции remove_from_cart ситуация аналогичная, что с cart функции add_to_cart
 
     # TODO Проверьте, а существует ли такой товар в корзине, если нет, то возвращаем False.
@@ -119,7 +125,7 @@ def remove_from_cart(id_product: str) -> bool:
         del(cart["products"][id_product])
     # TODO Не забываем записать обновленные данные cart в 'cart.json'
     with open('cart.json', mode='w', encoding='utf-8') as f:  # Создаём файл и записываем туда текущую корзину
-        json.dump(cart, f)
+        json.dump(cart_users, f)
     return True
 
 
@@ -159,3 +165,73 @@ if __name__ == "__main__":
 #     ]
 #
 #     print(filtering_category(DATABASE, 'Фрукты', 'price_after', True) == test)  # True
+
+def add_user_to_cart(request, username: str) -> None:
+    """
+    Добавляет пользователя в базу данных корзины, если его там не было.
+
+    :param username: Имя пользователя
+    :return: None
+    """
+    cart_users = view_in_cart(request)  # Чтение всей базы корзин
+
+    cart = cart_users.get(username)  # Получение корзины конкретного пользователя
+
+    if not cart:  # Если пользователя до настоящего момента не было в корзине, то создаём его и записываем в базу
+        with open('cart.json', mode='w', encoding='utf-8') as f:
+            cart_users[username] = {'products': {}}
+            json.dump(cart_users, f)
+
+def view_in_wishlist(request) -> dict:
+    """
+    Просматривает содержимое wishlist.json
+
+    :return: Содержимое 'wishlist.json'
+    """
+    if os.path.exists('wishlist.json'):  # Если файл существует
+        with open('wishlist.json', encoding='utf-8') as f:
+            return json.load(f)
+
+    user = get_user(request).username
+    wishlist = {user: {'products': []}}
+    with open('wishlist.json', mode='x', encoding='utf-8') as f:
+        json.dump(wishlist, f)
+    return wishlist
+
+def add_to_wishlist(id_product: str, user) -> bool:
+    """
+    Добавляет продукт в корзину. Если в корзине нет данного продукта, то добавляет его с количеством равное 1.
+    Если в корзине есть такой продукт, то добавляет количеству данного продукта + 1.
+
+    :param id_product: Идентификационный номер продукта в виде строки.
+    :return: Возвращает True в случае успешного добавления, а False в случае неуспешного добавления(товара по id_product
+    не существует).
+    """
+    # TODO Помните, что у вас есть уже реализация просмотра избранного,
+    wishlist = view_in_wishlist()
+    if wishlist[user].get('products') == None:
+        if DATABASE.get(id_product):
+            wi
+        else:
+            return False
+    else:
+        count = cart["products"].get(id_product)
+        cart["products"][id_product] = count + 1
+    with open('cart.json', mode='w', encoding='utf-8') as f:  # Создаём файл и записываем туда текущую корзину
+        json.dump(cart, f)
+
+    # поэтому, чтобы загрузить данные из корзины, не нужно заново писать код.
+
+    # ! Обратите внимание, что в переменной cart находится словарь с ключом products.
+    # ! Именно в cart["products"] лежит словарь гдк по id продуктов можно получить число продуктов в корзине.
+    # ! Т.е. чтобы обратиться к продукту с id_product = "1" в переменной cart нужно вызвать
+    # ! cart["products"][id_product]
+    # ! Далее уже сами решайте как и в какой последовательности дальше действовать.
+
+    # TODO Проверьте, а существует ли такой товар в корзине, если нет, то перед тем как его добавить - проверьте есть ли такой id_product товара в вашей базе данных DATABASE, чтобы уберечь себя от добавления несуществующего товара.
+    # if DATABASE.get(id_product):
+    #     # TODO Если товар существует, то увеличиваем его количество на 1
+    #     cart["products"][id_product] =count + 1
+    # TODO Не забываем записать обновленные данные cart в 'cart.json'. Так как именно из этого файла мы считываем данные и если мы не запишем изменения, то считать измененные данные не получится.
+
+    return True
