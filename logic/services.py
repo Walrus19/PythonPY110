@@ -182,7 +182,7 @@ def add_to_wishlist(request, id_product: str) -> bool:
             return False
 
 
-    with open('cart.json', mode='w', encoding='utf-8') as f:  # Создаём файл и записываем туда текущую корзину
+    with open('wishlist.json', mode='w', encoding='utf-8') as f:  # Создаём файл и записываем туда текущую корзину
         json.dump(wishlist_users, f)
 
     # поэтому, чтобы загрузить данные из корзины, не нужно заново писать код.
