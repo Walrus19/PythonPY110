@@ -9,5 +9,5 @@ urlpatterns = [
     path('', wishlist_view, name="wishlist_view"),  # TODO Зарегистрируйте обработчик
     path('api/add/<str:id_product>', wishlist_add_json),
     path('api/del/<str:id_product>', wishlist_del_json),
-    path('api', wishlist_json)
+    path('api/', wishlist_json)
 ]
