@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from django.shortcuts import render
+from django.http import JsonResponse, HttpResponseNotFound
+from django.shortcuts import render, redirect
 from logic.services import view_in_wishlist, add_to_wishlist, remove_from_wishlist
 from store.models import DATABASE
 from django.contrib.auth import get_user
@@ -12,9 +12,10 @@ def wishlist_view(request):
         data = view_in_wishlist(request)[current_user]
 
         products = []  # Список продуктов
-        for product_id in data['products'].items():
+        for product_id in data['products']:
             # 1. Получите информацию о продукте из DATABASE по его product_id. product будет словарём
             product = DATABASE.get(product_id)
+            products.append(product)
 
         return render(request, "wishlist/wishlist.html", context={"products":products})
       # TODO прописать отображение избранного. Путь до HTML - wishlist/wishlist.html
@@ -42,7 +43,7 @@ def wishlist_del_json(request, id_product: str):
     Удаление продукта из избранного и возвращение информации об успехе или неудаче в JSON
     """
     if request.method == "GET":
-        result = remove_from_wishlist(id_product)
+        result = remove_from_wishlist(request, id_product)
         # TODO вызовите обработчик из services.py удаляющий продукт из избранного
         if result:
             return JsonResponse({"answer": "Продукт успешно удален из избранного"},
@@ -71,3 +72,11 @@ def wishlist_json(request):
                                 status=404,
                                 json_dumps_params={'ensure_ascii': False})
         # TODO верните JsonResponse с ключом "answer" и значением "Пользователь не авторизирован" и параметром status=404
+
+def wishlist_remove_view(request, id_product):
+    if request.method == "GET":
+        result = remove_from_wishlist(request, id_product)
+        if result:
+            return redirect("wishlist:wishlist_view")
+
+        return HttpResponseNotFound("Неудачное удаление из корзины")
